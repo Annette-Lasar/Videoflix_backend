@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_rq',
     'user_auth_app',
-    'videos_app',
+    'video_app',
 ]
 
 MIDDLEWARE = [
