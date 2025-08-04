@@ -1,0 +1,12 @@
+# Ignore environment variables
+.env
+*.env
+
+# Ignore __pycache__ und Migrations
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+
+# VS Code
+.vscode/
