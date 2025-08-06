@@ -36,14 +36,13 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
    
     def create(self, validated_data):
-        print('Ich bin der richtige Create-Block.')
         email = validated_data.get('email')
         password = validated_data.get('password')
 
         user = User(
             email=email,
             username=email,
-            is_active=True
+            is_active=False
         )
         user.set_password(password)
         user.save()
