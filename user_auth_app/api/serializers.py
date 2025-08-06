@@ -42,7 +42,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
         user = User(
             email=email,
             username=email,
-            is_active=False
+            is_active=True  # später wieder auf False setzen
         )
         user.set_password(password)
         user.save()
@@ -62,7 +62,6 @@ class LoginSerializer(TokenObtainPairSerializer):
             self.fields.pop("username")
     
     def validate(self, attrs):
-        print("123")
         email = attrs.get("email")
         password = attrs.get("password")
         
