@@ -42,7 +42,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
         user = User(
             email=email,
             username=email,
-            is_active=True  # später wieder auf False setzen
+            is_active=False 
         )
         user.set_password(password)
         user.save()

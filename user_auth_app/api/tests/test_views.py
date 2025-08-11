@@ -1,6 +1,9 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from django.contrib.auth.tokens import default_token_generator
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
@@ -20,13 +23,19 @@ class RegistrationViewTests(APITestCase):
 
         response = self.client.post(self.url, data, format='json')
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
         self.assertIn('user', response.data)
         self.assertIn('token', response.data)
+        self.assertIsInstance(response.data['token'], str)
+        self.assertTrue(len(response.data['token']) > 0)
 
         user = User.objects.get(email="anna.bates@downton.com")
         self.assertTrue(user.check_password("securepassword123"))
-        self.assertTrue(user.is_active)
+        self.assertFalse(user.is_active) 
+
+        self.assertEqual(response.data['user']['id'], user.pk)
+        self.assertEqual(response.data['user']['email'], user.email)
 
     def test_registration_password_mismatch(self):
         data = {
@@ -38,9 +47,6 @@ class RegistrationViewTests(APITestCase):
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("non_field_errors", response.data)
-
-
-User = get_user_model()
 
 
 class LoginViewTest(APITestCase):
@@ -112,6 +118,50 @@ class CookieTokenRefreshViewTest(APITestCase):
         self.assertEqual(response.data["detail"], "Token refreshed!")
         self.assertIn("access_token", response.cookies)
 
+class ActivateAccountViewTests(APITestCase):
+    def setUp(self):
+        self.password = "S3cureP@ss!"
+        self.user = User.objects.create_user(
+            username="anna",  
+            email="anna@example.com",
+            password=self.password,
+            is_active=False,
+        )
+
+        self.uidb64 = urlsafe_base64_encode(force_bytes(self.user.pk))
+        self.token = default_token_generator.make_token(self.user)
+
+    def test_activation_success(self):
+        url = reverse("activate", kwargs={"uidb64": self.uidb64, "token": self.token})
+        resp = self.client.get(url)
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data.get("message"), "Account successfully activated.")
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_active)
+
+    def test_activation_invalid_token(self):
+        url = reverse("activate", kwargs={"uidb64": self.uidb64, "token": "not-a-real-token"})
+        resp = self.client.get(url)
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data.get("message"), "Invalid or expired token.")
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_active)
+
+    def test_activation_invalid_uid(self):
+        bad_uid = "bogus"
+        url = reverse("activate", kwargs={"uidb64": bad_uid, "token": self.token})
+        resp = self.client.get(url)
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data.get("message"), "Invalid activation link.")
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_active)
+
 
 class LogoutViewTest(APITestCase):
     def setUp(self):
@@ -144,6 +194,6 @@ class LogoutViewTest(APITestCase):
             response.data["detail"],
             "Logout successful! All tokens will be deleted. Refresh token is now invalid."
         )
-        
+
         self.assertEqual(response.cookies["access_token"]["max-age"], 0)
         self.assertEqual(response.cookies["refresh_token"]["max-age"], 0)

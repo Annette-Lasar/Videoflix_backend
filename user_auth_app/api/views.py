@@ -3,8 +3,13 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes
 from rest_framework.response import Response
 from rest_framework import status
+from django.utils.encoding import force_str
+from .signals import password_reset_requested
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -17,24 +22,22 @@ class RegistrationView(APIView):
 
     def post(self, request):
         serializer = RegistrationSerializer(data=request.data)
-
-        data = {}
-        if serializer.is_valid():
-            saved_account = serializer.save()
-
-            refresh = RefreshToken.for_user(saved_account)
-            activation_token = str(refresh.access_token)
-
-            data = {
-                'user': {
-                    "id": saved_account.pk,
-                    'email': saved_account.email
-                },
-                "token": activation_token
-            }
-            return Response(data)
-        else:
+        if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        saved_account = serializer.save()
+        uidb64 = urlsafe_base64_encode(force_bytes(saved_account.pk))
+        activation_token = default_token_generator.make_token(saved_account)
+
+        data = {
+            "user": {
+                "id": saved_account.pk,
+                "email": saved_account.email,
+            },
+            "token": activation_token,
+        }
+
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class LoginView(TokenObtainPairView):
@@ -115,6 +118,49 @@ class CookieTokenRefreshView(TokenRefreshView):
         )
 
         return response
+
+
+class ActivateAccountView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"message": "Invalid activation link."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if default_token_generator.check_token(user, token):
+            if not user.is_active:
+                user.is_active = True
+                user.save(update_fields=["is_active"])
+            return Response({"message": "Account successfully activated."}, status=status.HTTP_200_OK)
+        return Response({"message": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = (request.data.get("email") or "").strip().lower()
+
+        user = None
+        if email:
+            try:
+                user = User.objects.get(email__iexact=email)
+            except User.DoesNotExist:
+                user = None
+
+        password_reset_requested.send(
+            sender=self.__class__,
+            email=email,
+            user=user,
+        )
+
+        return Response(
+            {"detail": "An email has been sent to reset your password."},
+            status=status.HTTP_200_OK,
+        )
 
 
 class LogoutView(APIView):

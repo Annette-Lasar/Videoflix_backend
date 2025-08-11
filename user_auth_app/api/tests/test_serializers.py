@@ -20,7 +20,7 @@ class RegistrationSerializerTest(TestCase):
         user = serializer.save()
         self.assertEqual(user.email, data["email"])
         self.assertTrue(user.check_password(data["password"]))
-        self.assertTrue(user.is_active)
+        self.assertFalse(user.is_active)
 
     def test_serializer_rejects_mismatched_passwords(self):
         data = {

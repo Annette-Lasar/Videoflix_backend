@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'django_rq',
     'django_extensions',
-    'user_auth_app',
+    'user_auth_app.apps.UserAuthAppConfig',
     'video_app',
 ]
 
@@ -95,6 +95,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5500",
     "http://localhost:5500",
 ]
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
