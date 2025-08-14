@@ -9,4 +9,19 @@ __pycache__/
 *.log
 
 # VS Code
-.vscode/
+.vscode/# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtualenvs
+env/
+.venv/
+
+# Local config / secrets
+.env
+
+# Runtime artifacts 
+media/
+static/
+tmp-mails/
