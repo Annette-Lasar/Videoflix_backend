@@ -10,9 +10,9 @@ class VideoStreamVariantInline(admin.TabularInline):
 
 @admin.register(Video)
 class VideoAdmin(admin.ModelAdmin):
-    list_display = ("title", "category", "available_resolutions", "created_at")
-    search_fields = ("title", "category")
-    list_filter = ("category", "created_at")
+    list_display = ("id", "title", "processing_status", "processing_progress", "duration_seconds", "file_size_mb", "created_at")
+    list_filter = ("title", "category", "processing_status", "created_at")
+    search_fields = ("title", "description")
     ordering = ("-created_at",)
     inlines = [VideoStreamVariantInline]
 

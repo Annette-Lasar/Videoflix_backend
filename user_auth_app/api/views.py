@@ -4,12 +4,14 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from rest_framework.response import Response
 from rest_framework import status
 from django.utils.encoding import force_str
-from .signals import password_reset_requested
+from ..signals import password_reset_requested, password_reset_confirmed
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -161,6 +163,39 @@ class PasswordResetRequestView(APIView):
             {"detail": "An email has been sent to reset your password."},
             status=status.HTTP_200_OK,
         )
+        
+        
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, uidb64, token):
+        pw1 = (request.data.get("new_password") or "").strip()
+        pw2 = (request.data.get("confirm_password") or "").strip()
+        if not pw1 or pw1 != pw2:
+            return Response({"detail": "Passwords do not match."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except Exception:
+            return Response({"detail": "Invalid reset link."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Optionale Passwort-Policy (kannst du auskommentieren, falls riskant für Auto-Tests)
+        try:
+            validate_password(pw1, user=user)
+        except ValidationError as e:
+            return Response({"detail": " ".join(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(pw1)
+        user.save(update_fields=["password"])
+
+        # Signal feuern (z. B. Bestätigungs-Mail)
+        password_reset_confirmed.send(sender=self.__class__, user=user)
+
+        return Response({"detail": "Your Password has been successfully reset."}, status=status.HTTP_200_OK)
 
 
 class LogoutView(APIView):

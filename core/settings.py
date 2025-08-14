@@ -51,7 +51,7 @@ INSTALLED_APPS = [
     'django_rq',
     'django_extensions',
     'user_auth_app.apps.UserAuthAppConfig',
-    'video_app',
+    'video_app.apps.VideoAppConfig',
 ]
 
 MIDDLEWARE = [
@@ -130,7 +130,7 @@ RQ_QUEUES = {
         'DB': os.environ.get("REDIS_DB", default=0),
         'DEFAULT_TIMEOUT': 900,
         'REDIS_CLIENT_KWARGS': {},
-    },
+    }
 }
 
 

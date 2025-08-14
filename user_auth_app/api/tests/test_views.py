@@ -32,7 +32,7 @@ class RegistrationViewTests(APITestCase):
 
         user = User.objects.get(email="anna.bates@downton.com")
         self.assertTrue(user.check_password("securepassword123"))
-        self.assertFalse(user.is_active) 
+        self.assertFalse(user.is_active)
 
         self.assertEqual(response.data['user']['id'], user.pk)
         self.assertEqual(response.data['user']['email'], user.email)
@@ -118,11 +118,12 @@ class CookieTokenRefreshViewTest(APITestCase):
         self.assertEqual(response.data["detail"], "Token refreshed!")
         self.assertIn("access_token", response.cookies)
 
+
 class ActivateAccountViewTests(APITestCase):
     def setUp(self):
         self.password = "S3cureP@ss!"
         self.user = User.objects.create_user(
-            username="anna",  
+            username="anna",
             email="anna@example.com",
             password=self.password,
             is_active=False,
@@ -132,17 +133,20 @@ class ActivateAccountViewTests(APITestCase):
         self.token = default_token_generator.make_token(self.user)
 
     def test_activation_success(self):
-        url = reverse("activate", kwargs={"uidb64": self.uidb64, "token": self.token})
+        url = reverse("activate", kwargs={
+                      "uidb64": self.uidb64, "token": self.token})
         resp = self.client.get(url)
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data.get("message"), "Account successfully activated.")
+        self.assertEqual(resp.data.get("message"),
+                         "Account successfully activated.")
 
         self.user.refresh_from_db()
         self.assertTrue(self.user.is_active)
 
     def test_activation_invalid_token(self):
-        url = reverse("activate", kwargs={"uidb64": self.uidb64, "token": "not-a-real-token"})
+        url = reverse("activate", kwargs={
+                      "uidb64": self.uidb64, "token": "not-a-real-token"})
         resp = self.client.get(url)
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
@@ -153,7 +157,8 @@ class ActivateAccountViewTests(APITestCase):
 
     def test_activation_invalid_uid(self):
         bad_uid = "bogus"
-        url = reverse("activate", kwargs={"uidb64": bad_uid, "token": self.token})
+        url = reverse("activate", kwargs={
+                      "uidb64": bad_uid, "token": self.token})
         resp = self.client.get(url)
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
@@ -162,6 +167,85 @@ class ActivateAccountViewTests(APITestCase):
         self.user.refresh_from_db()
         self.assertFalse(self.user.is_active)
 
+
+class PasswordResetRequestViewTests(APITestCase):
+    def setUp(self):
+        self.url = reverse("password_reset")
+        self.user_email = "anna@example.com"
+        self.password = "TestPass123"
+        self.user = User.objects.create_user(
+            username="anna",
+            email=self.user_email,
+            password=self.password,
+            is_active=True
+        )
+
+    def test_password_reset_existing_user(self):
+        """Is supposed to return 200 and to send email if user exists."""
+        response = self.client.post(
+            self.url, {"email": self.user_email}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("detail"),
+                         "An email has been sent to reset your password.")
+
+        from django.core import mail
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.user_email, mail.outbox[0].to)
+
+    def test_password_reset_nonexistent_user(self):
+        """Is supposed to return 200 anyway and send a neutral email if user doesn't exist."""
+        non_existing_email = "doesnotexist@example.com"
+        response = self.client.post(
+            self.url, {"email": non_existing_email}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("detail"),
+                         "An email has been sent to reset your password.")
+
+        from django.core import mail
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(non_existing_email, mail.outbox[0].to)
+
+
+class PasswordResetConfirmViewTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="resetuser",
+            email="reset@example.com",
+            password="oldpassword123",
+            is_active=True,
+        )
+        self.uidb64 = urlsafe_base64_encode(force_bytes(self.user.pk))
+        self.token = default_token_generator.make_token(self.user)
+        self.url = reverse(
+            "password_confirm",
+            kwargs={"uidb64": self.uidb64, "token": self.token},
+        )
+
+    def test_reset_password_success(self):
+        data = {
+            "new_password": "newsecurepassword123",
+            "confirm_password": "newsecurepassword123"
+        }
+        response = self.client.post(self.url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["detail"],
+            "Your Password has been successfully reset."
+        )
+
+        # Prüfen, ob das neue Passwort wirklich gesetzt wurde
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("newsecurepassword123"))
+
+    def test_passwords_do_not_match(self):
+        data = {
+            "new_password": "pw1",
+            "confirm_password": "pw2"
+        }
+        response = self.client.post(self.url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+        
 
 class LogoutViewTest(APITestCase):
     def setUp(self):
