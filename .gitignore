@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.py[cod]
 *.pyo
@@ -10,7 +11,10 @@ env/
 # Local config / secrets
 .env
 
-# Runtime artifacts (optional)
+# VS Code
+.vscode/
+
+# Runtime artifacts 
 media/
 static/
 tmp-mails/
