@@ -85,9 +85,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5500",
-    "http://127.0.0.1:5500",
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost(:\d+)?$",
+    r"^http://127\.0\.0\.1(:\d+)?$",
 ]
 
 
@@ -95,6 +95,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5500",
     "http://localhost:5500",
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
