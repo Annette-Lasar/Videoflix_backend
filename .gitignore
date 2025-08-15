@@ -1,12 +1,20 @@
-# Ignore environment variables
-.env
-*.env
-
-# Ignore __pycache__ und Migrations
+# Python
 __pycache__/
 *.py[cod]
-*.sqlite3
-*.log
+*.pyo
+*.pyd
+
+# Virtualenvs
+env/
+.venv/
+
+# Local config / secrets
+.env
 
 # VS Code
 .vscode/
+
+# Runtime artifacts 
+media/
+static/
+tmp-mails/
