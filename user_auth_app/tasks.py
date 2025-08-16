@@ -5,7 +5,10 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 
-from utils.email_helpers import build_activation_link, build_password_reset_link
+from utils.email_helpers import (
+    send_activation_email,
+    send_password_reset_email,
+    build_password_reset_link)
 
 logger = logging.getLogger(__name__)
 
@@ -14,22 +17,13 @@ def send_activation_email_job(user_id: int) -> None:
     """RQ-Job: Aktivierungs-Mail verschicken (läuft im Worker)."""
     User = get_user_model()
     user = User.objects.get(pk=user_id)
+
     if not user.email:
         logger.warning(
             "Activation email skipped: user %s has no email", user_id)
         return
 
-    link = build_activation_link(user)
-    subject = "Bitte Account aktivieren"
-    message = (
-        "Hallo!\n\n"
-        "Bitte aktiviere deinen Account über folgenden Link:\n"
-        f"{link}\n\n"
-        "Vielen Dank!"
-    )
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@example.com")
-    send_mail(subject, message, from_email, [user.email], fail_silently=False)
-    logger.info("Activation email queued->sent to %s", user.email[:2] + "****")
+    send_activation_email(user)
 
 
 def enqueue_activation_email(user_id: int) -> str:
@@ -48,27 +42,14 @@ def enqueue_activation_email(user_id: int) -> str:
 
 
 def send_password_reset_email_job(user_id: int) -> None:
-    """
-    Läuft im Worker: Passwort-Reset-Mail für EXISTIERENDEN User.
-    Identischer Inhalt wie vorher (inkl. Link).
-    """
     User = get_user_model()
     user = User.objects.get(pk=user_id)
+
     if not user.email:
         logger.warning("Password reset skipped: user %s has no email", user_id)
         return
 
-    link = build_password_reset_link(user)
-    subject = "Passwort zurücksetzen"
-    message = (
-        "Hallo!\n\n"
-        "Zum Zurücksetzen deines Passworts klicke auf den folgenden Link:\n"
-        f"{link}\n\n"
-        "Wenn du das nicht warst, ignoriere diese E-Mail."
-    )
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@example.com")
-    send_mail(subject, message, from_email, [user.email], fail_silently=False)
-    logger.info("Password reset email sent to %s", user.email[:2] + "****")
+    send_password_reset_email(user)
 
 
 def send_plain_email_job(to_email: str, subject: str, message: str) -> None:
