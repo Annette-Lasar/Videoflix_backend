@@ -10,14 +10,6 @@ from .models import Video, VideoStreamVariant
 logger = logging.getLogger(__name__)
 
 
-# provisorisch
-
-# def convert_480p(source):
-#     target = source + '_480p'
-#     cmd = 'ffmpeg -i "{}" -s hd480 -c:v libx264 -crf 23 -c:a aac -strict -2 "{}"'.format(source, target)
-#     subprocess.run(cmd)
-
-
 def queue_video_processing(video_id):
     """
     Enqueue video processing job in Redis Queue
@@ -54,13 +46,10 @@ def process_video_to_hls(video_id):
         logger.info("Starting HLS processing for Video %s: %s",
                     video_id, video.title)
 
-        # Setup video processing
         input_path, output_dir = setup_video_processing(video)
 
-        # Process all HLS resolutions
         process_all_resolutions(video, input_path, output_dir)
 
-        # Finalize with metadata and thumbnail
         finalize_video_processing(video, input_path)
 
         logger.info("Video %s processing completed successfully", video_id)
@@ -88,11 +77,9 @@ def setup_video_processing(video):
     video.processing_progress = 0
     video.save()
 
-    # Setup file paths
     input_path = video.video_file.path
     output_dir = Path(settings.MEDIA_ROOT) / "hls" / str(video.id)
 
-    # Create output directory
     output_dir.mkdir(parents=True, exist_ok=True)
 
     logger.debug("Video processing setup completed for video %s", video.id)
@@ -132,19 +119,16 @@ def finalize_video_processing(video, input_path):
     Final steps: extract metadata, generate thumbnail, mark as completed
     Updates progress from 80% to 100%
     """
-    # Extract metadata (85% progress)
     logger.debug("Extracting metadata for video %s", video.id)
     video.processing_progress = 85
     video.save()
     extract_video_metadata(video, input_path)
 
-    # Generate thumbnail (95% progress)
     logger.debug("Generating thumbnail for video %s", video.id)
     video.processing_progress = 95
     video.save()
     generate_thumbnail(video, input_path)
 
-    # Complete processing (100%)
     video.processing_status = 'completed'
     video.processing_progress = 100
     video.save()
@@ -159,15 +143,12 @@ def process_resolution(video, input_path, output_dir, resolution):
     height = resolution['height']
     bitrate = resolution['bitrate']
 
-    # Output directory for this resolution
     res_output_dir = output_dir / res_name
     res_output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Output files
     playlist_path = res_output_dir / "index.m3u8"
     segment_pattern = res_output_dir / "segment_%05d.ts"
 
-    # FFmpeg command for HLS conversion
     ffmpeg_cmd = [
         'ffmpeg',
         '-i', input_path,
@@ -184,7 +165,6 @@ def process_resolution(video, input_path, output_dir, resolution):
     ]
 
     try:
-        # Run FFmpeg
         subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True)
         logger.debug(
             "FFmpeg conversion to %s completed successfully", res_name)
@@ -204,7 +184,6 @@ def extract_video_metadata(video, input_path):
     """
     Extract video duration and file size using FFprobe
     """
-    # Get video duration with ffprobe
     try:
         duration_cmd = [
             'ffprobe',
@@ -218,11 +197,9 @@ def extract_video_metadata(video, input_path):
             duration_cmd, capture_output=True, text=True, check=True)
         duration = float(result.stdout.strip())
 
-        # Get file size
         file_size_bytes = os.path.getsize(input_path)
         file_size_mb = file_size_bytes // (1024 * 1024)
 
-        # Update video model
         video.duration_seconds = int(duration)
         video.file_size_mb = file_size_mb
         video.save()
@@ -269,9 +246,7 @@ def generate_thumbnail(video, input_path):
     except subprocess.CalledProcessError as e:
         logger.error(
             "FFmpeg thumbnail generation failed for video %s: %s", video.id, e.stderr)
-        # Don't raise - thumbnail failure shouldn't fail the whole job
 
     except Exception as e:
         logger.error(
             "Failed to generate thumbnail for video %s: %s", video.id, str(e))
-        # Don't raise - thumbnail failure shouldn't fail the whole job

@@ -70,7 +70,7 @@ Set (at least) the following variables:
 | DJANGO_SUPERUSER_PASSWORD | change-me | default: adminpassword |
 | DEBUG |	True |	False for production |
 | ALLOWED_HOSTS | localhost,127.0.0.1 | |
-| CSRF_TRUSTED_ORIGINS | http://localhost:4200,http://127.0.0.1:4200 |
+| CSRF_TRUSTED_ORIGINS | http://localhost:5500,http://127.0.0.1:5500 |
 | DB_NAME | change-me | |
 | DB_USER | change-me | |
 | DB_PASSWORD | change-me | |

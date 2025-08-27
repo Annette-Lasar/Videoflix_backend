@@ -12,9 +12,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils.encoding import force_str
 from ..signals import password_reset_requested, password_reset_confirmed
+from django.middleware.csrf import get_token
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
+
 
 User = get_user_model()
 
@@ -70,6 +71,23 @@ class LoginView(TokenObtainPairView):
             httponly=True,
             secure=True,
             samesite="Lax"
+        )
+
+        response.data = {
+            "detail": "Login successful!",
+            "user": {
+                "id": user.id,
+                "username": user.username
+            }
+        }
+
+        csrf_token = get_token(request)
+        response.set_cookie(
+            key="csrftoken",
+            value=csrf_token,
+            secure=True,
+            samesite="Lax",
+            path="/"
         )
 
         response.data = {
@@ -163,8 +181,8 @@ class PasswordResetRequestView(APIView):
             {"detail": "An email has been sent to reset your password."},
             status=status.HTTP_200_OK,
         )
-        
-        
+
+
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
 
@@ -183,7 +201,6 @@ class PasswordResetConfirmView(APIView):
         if not default_token_generator.check_token(user, token):
             return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Optionale Passwort-Policy (kannst du auskommentieren, falls riskant für Auto-Tests)
         try:
             validate_password(pw1, user=user)
         except ValidationError as e:
@@ -192,7 +209,6 @@ class PasswordResetConfirmView(APIView):
         user.set_password(pw1)
         user.save(update_fields=["password"])
 
-        # Signal feuern (z. B. Bestätigungs-Mail)
         password_reset_confirmed.send(sender=self.__class__, user=user)
 
         return Response({"detail": "Your Password has been successfully reset."}, status=status.HTTP_200_OK)
@@ -204,30 +220,28 @@ class LogoutView(APIView):
     def post(self, request):
         refresh_token = request.COOKIES.get('refresh_token')
 
-        if refresh_token is None:
-            return Response(
-                {
-                    "detail": "Missing refresh token!"
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except TokenError:
+                pass
 
-        try:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-        except TokenError:
-            return Response(
-                {
-                    "detail": "Invalid token."
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        response = Response(
+            {"detail": "Logout successful!"},
+            status=status.HTTP_200_OK
+        )
 
-        response = Response({
-            "detail": "Logout successful! All tokens will be deleted. Refresh token is now invalid."
-        }, status=status.HTTP_200_OK)
+        response.delete_cookie('access_token', path='/')
+        response.delete_cookie('refresh_token', path='/')
 
-        response.delete_cookie('access_token')
-        response.delete_cookie('refresh_token')
+        csrf_token = get_token(request)
+        response.set_cookie(
+            key="csrftoken",
+            value=csrf_token,
+            secure=True,
+            samesite="Lax",
+            path="/"
+        )
 
         return response

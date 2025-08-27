@@ -7,7 +7,8 @@ from django.http import FileResponse, Http404
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
-
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from core.settings import MEDIA_ROOT
 from rest_framework.response import Response
 from rest_framework import status
@@ -33,8 +34,8 @@ class VideoListView(APIView):
                     "created_at": v.created_at,
                     "title": v.title,
                     "description": v.description,
-                    "thumbnail_url": v.thumbnail_url,
                     "category": v.category,
+                    "thumbnail_url": f"{settings.BASE_BACKEND_URL}{settings.MEDIA_URL}{v.thumbnail_url}" if v.thumbnail_url else None
                 }
                 for v in videos
             ]

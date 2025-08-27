@@ -14,7 +14,7 @@ def build_activation_link(user) -> str:
     uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
 
-    base = getattr(settings, "FRONTEND_ORIGIN", "http://localhost:5500")
+    base = getattr(settings, "FRONTEND_ORIGIN", "http://127.0.0.1:5500")
     path = f"/pages/auth/activate.html?uid={uidb64}&token={token}"
 
     return urljoin(base, path)
