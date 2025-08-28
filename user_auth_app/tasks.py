@@ -8,13 +8,16 @@ from django.core.mail import send_mail
 from utils.email_helpers import (
     send_activation_email,
     send_password_reset_email,
-    build_password_reset_link)
+)
 
 logger = logging.getLogger(__name__)
 
 
 def send_activation_email_job(user_id: int) -> None:
-    """RQ-Job: Aktivierungs-Mail verschicken (läuft im Worker)."""
+    """
+    RQ job: Send an activation email for the given user.
+    Runs inside a worker process.
+    """
     User = get_user_model()
     user = User.objects.get(pk=user_id)
 
@@ -27,7 +30,10 @@ def send_activation_email_job(user_id: int) -> None:
 
 
 def enqueue_activation_email(user_id: int) -> str:
-    """Wrapper: Job in die Queue legen (default-Queue beibehalten)."""
+    """
+    Enqueue the activation email job into the default queue.
+    Returns the job ID.
+    """
     q = django_rq.get_queue("default")
     job = q.enqueue(
         send_activation_email_job,
@@ -42,6 +48,10 @@ def enqueue_activation_email(user_id: int) -> str:
 
 
 def send_password_reset_email_job(user_id: int) -> None:
+    """
+    RQ job: Send a password reset email for the given user.
+    Runs inside a worker process.
+    """
     User = get_user_model()
     user = User.objects.get(pk=user_id)
 
@@ -54,7 +64,8 @@ def send_password_reset_email_job(user_id: int) -> None:
 
 def send_plain_email_job(to_email: str, subject: str, message: str) -> None:
     """
-    Läuft im Worker: Neutrale Mail (für 'User evtl. nicht vorhanden').
+    RQ job: Send a generic plain email (used when user may not exist).
+    Runs inside a worker process.
     """
     if not to_email:
         logger.warning("Plain email skipped: empty recipient")
@@ -65,6 +76,10 @@ def send_plain_email_job(to_email: str, subject: str, message: str) -> None:
 
 
 def enqueue_password_reset_email(user_id: int) -> str:
+    """
+    Enqueue the password reset email job into the default queue.
+    Returns the job ID.
+    """
     q = django_rq.get_queue("default")
     job = q.enqueue(
         send_password_reset_email_job,
@@ -78,6 +93,10 @@ def enqueue_password_reset_email(user_id: int) -> str:
 
 
 def enqueue_plain_email(to_email: str, subject: str, message: str) -> str:
+    """
+    Enqueue a plain email job into the default queue.
+    Returns the job ID.
+    """
     q = django_rq.get_queue("default")
     job = q.enqueue(
         send_plain_email_job,

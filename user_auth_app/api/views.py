@@ -21,6 +21,13 @@ User = get_user_model()
 
 
 class RegistrationView(APIView):
+    """
+    Handle user registration.
+
+    Accepts user data, validates it with RegistrationSerializer, 
+    saves the new account, and returns user info along with an activation token.
+    """
+
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -44,6 +51,13 @@ class RegistrationView(APIView):
 
 
 class LoginView(TokenObtainPairView):
+    """
+    Handle user login and JWT token generation.
+
+    On successful authentication, sets access and refresh tokens 
+    as HttpOnly cookies, issues a CSRF token, and returns basic user info.
+    """
+
     serializer_class = LoginSerializer
     permission_classes = [AllowAny]
 
@@ -104,6 +118,13 @@ class LoginView(TokenObtainPairView):
 
 
 class CookieTokenRefreshView(TokenRefreshView):
+    """
+    Handle JWT token refresh using the refresh token stored in cookies.
+
+    Reads the refresh token from HttpOnly cookies, validates it,
+    and issues a new access token which is also set as a cookie.
+    """
+
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get("refresh_token")
 
@@ -141,6 +162,13 @@ class CookieTokenRefreshView(TokenRefreshView):
 
 
 class ActivateAccountView(APIView):
+    """
+    Handle account activation via UID and token.
+
+    Decodes the UID, verifies the token, and activates the user account
+    if valid and not already active.
+    """
+
     permission_classes = [AllowAny]
 
     def get(self, request, uidb64, token):
@@ -159,6 +187,14 @@ class ActivateAccountView(APIView):
 
 
 class PasswordResetRequestView(APIView):
+    """
+    Handle password reset requests.
+
+    Accepts an email address, checks if a user exists for it,
+    and sends the password_reset_requested signal.
+    Always responds with a generic success message for security reasons.
+    """
+
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -184,6 +220,13 @@ class PasswordResetRequestView(APIView):
 
 
 class PasswordResetConfirmView(APIView):
+    """
+    Confirm and complete a password reset.
+
+    Validates the UID and token, checks new passwords, enforces password validators,
+    and updates the user's password if valid.
+    """
+
     permission_classes = [AllowAny]
 
     def post(self, request, uidb64, token):
@@ -215,6 +258,13 @@ class PasswordResetConfirmView(APIView):
 
 
 class LogoutView(APIView):
+    """
+    Handle user logout.
+
+    Blacklists the refresh token if present and removes access/refresh cookies.
+    Also issues a new CSRF token to the client.
+    """
+
     permission_classes = [AllowAny]
 
     def post(self, request):

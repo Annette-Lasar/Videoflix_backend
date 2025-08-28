@@ -25,6 +25,13 @@ SEGMENT_NAME_RE = re.compile(r"^segment_\d{5}\.ts$")
 
 
 class VideoListView(APIView):
+    """
+    Returns a list of videos ordered by newest first.
+
+    Each item includes id, created_at, title, description, category,
+    and an absolute thumbnail URL if available.
+    """
+
     def get(self, request):
         try:
             videos = Video.objects.all().order_by("-created_at")
@@ -50,6 +57,21 @@ class VideoListView(APIView):
 
 @api_view(["GET"])
 def video_variant_manifest(request, movie_id: int, resolution: str):
+    """
+    Return the HLS manifest (.m3u8) file for a given video and resolution.
+
+    Args:
+        movie_id (int): ID of the video.
+        resolution (str): Target resolution (must be in ALLOWED_RESOLUTIONS).
+
+    Raises:
+        Http404: If the resolution is invalid, the variant does not exist,
+                 or the manifest file cannot be found.
+
+    Returns:
+        FileResponse: The requested HLS manifest file with 
+        content type 'application/vnd.apple.mpegurl'.
+    """
     if resolution not in ALLOWED_RESOLUTIONS:
         raise Http404("Invalid resolution")
 
@@ -73,15 +95,33 @@ def video_variant_manifest(request, movie_id: int, resolution: str):
 
 @api_view(["GET"])
 def video_segment(request, movie_id: int, resolution: str, segment: str):
+    """
+    Return a single HLS video segment (.ts file) for the given video and resolution.
+
+    Args:
+        movie_id (int): ID of the video.
+        resolution (str): Target resolution (must be in ALLOWED_RESOLUTIONS).
+        segment (str): Filename of the segment (validated against SEGMENT_NAME_RE).
+
+    Raises:
+        Http404: If the resolution is invalid, the segment name is invalid,
+                 the variant does not exist, or the segment file cannot be found.
+
+    Returns:
+        FileResponse: The requested video segment with 
+        content type 'video/MP2T'.
+    """
     if resolution not in ALLOWED_RESOLUTIONS:
         raise Http404("Invalid resolution")
 
     if not SEGMENT_NAME_RE.match(segment):
         raise Http404("Invalid segment name")
 
-    get_object_or_404(VideoStreamVariant, video_id=movie_id, resolution=resolution)
+    get_object_or_404(VideoStreamVariant, video_id=movie_id,
+                      resolution=resolution)
 
-    seg_path = Path(settings.MEDIA_ROOT) / "hls" / str(movie_id) / resolution / segment
+    seg_path = Path(settings.MEDIA_ROOT) / "hls" / \
+        str(movie_id) / resolution / segment
     if not seg_path.exists():
         raise Http404("Segment not found")
 

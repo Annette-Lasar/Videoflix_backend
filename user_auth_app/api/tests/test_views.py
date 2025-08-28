@@ -11,10 +11,13 @@ User = get_user_model()
 
 
 class RegistrationViewTests(APITestCase):
+    """Integration tests for the RegistrationView endpoint."""
+
     def setUp(self):
         self.url = reverse('register')
 
     def test_registration_success(self):
+        """201 Created: User is registered successfully and returned with token."""
         data = {
             "email": "anna.bates@downton.com",
             "password": "securepassword123",
@@ -38,6 +41,7 @@ class RegistrationViewTests(APITestCase):
         self.assertEqual(response.data['user']['email'], user.email)
 
     def test_registration_password_mismatch(self):
+        """400 Bad Request: Registration fails when passwords do not match."""
         data = {
             "email": "thomas.barrow@downton.com",
             "password": "secret123",
@@ -50,6 +54,8 @@ class RegistrationViewTests(APITestCase):
 
 
 class LoginViewTest(APITestCase):
+    """Integration tests for the LoginView endpoint."""
+
     def setUp(self):
         self.login_url = reverse('login')
         self.email = "testuser@example.com"
@@ -62,6 +68,7 @@ class LoginViewTest(APITestCase):
         )
 
     def test_login_success(self):
+        """200 OK: Login succeeds and tokens are set as cookies."""
         data = {"email": self.email, "password": self.password}
         response = self.client.post(self.login_url, data, format='json')
 
@@ -72,6 +79,7 @@ class LoginViewTest(APITestCase):
         self.assertEqual(response.data["user"]["username"], self.email)
 
     def test_login_with_wrong_password(self):
+        """400 Bad Request: Login fails with invalid password."""
         data = {"email": self.email, "password": "wrongpassword"}
         response = self.client.post(self.login_url, data, format='json')
 
@@ -80,6 +88,7 @@ class LoginViewTest(APITestCase):
         self.assertNotIn("refresh_token", response.cookies)
 
     def test_login_with_missing_fields(self):
+        """400 Bad Request: Login fails when required fields are missing."""
         data = {"email": self.email}
         response = self.client.post(self.login_url, data, format='json')
 
@@ -87,8 +96,10 @@ class LoginViewTest(APITestCase):
 
 
 class CookieTokenRefreshViewTest(APITestCase):
+    """Integration tests for the CookieTokenRefreshView endpoint."""
+
     def setUp(self):
-        self.url = reverse('token_refresh')  # Name in urls.py prüfen
+        self.url = reverse('token_refresh')
         self.user = User.objects.create_user(
             username="refreshuser@example.com",
             email="refreshuser@example.com",
@@ -100,17 +111,20 @@ class CookieTokenRefreshViewTest(APITestCase):
         self.invalid_refresh_token = "invalid.token.string"
 
     def test_missing_refresh_token_cookie(self):
+        """400 Bad Request: Fails when refresh token cookie is missing."""
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["detail"], "Refresh token not found!")
 
     def test_invalid_refresh_token_cookie(self):
+        """401 Unauthorized: Fails when refresh token cookie is invalid."""
         self.client.cookies["refresh_token"] = self.invalid_refresh_token
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data["detail"], "Invalid refresh token!")
 
     def test_valid_refresh_token_cookie(self):
+        """200 OK: Succeeds with valid refresh token cookie and sets new access token."""
         self.client.cookies["refresh_token"] = self.valid_refresh_token
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 200)
@@ -120,6 +134,8 @@ class CookieTokenRefreshViewTest(APITestCase):
 
 
 class ActivateAccountViewTests(APITestCase):
+    """Integration tests for the ActivateAccountView endpoint."""
+
     def setUp(self):
         self.password = "S3cureP@ss!"
         self.user = User.objects.create_user(
@@ -133,6 +149,7 @@ class ActivateAccountViewTests(APITestCase):
         self.token = default_token_generator.make_token(self.user)
 
     def test_activation_success(self):
+        """200 OK: User account is successfully activated with valid uid and token."""
         url = reverse("activate", kwargs={
                       "uidb64": self.uidb64, "token": self.token})
         resp = self.client.get(url)
@@ -145,6 +162,7 @@ class ActivateAccountViewTests(APITestCase):
         self.assertTrue(self.user.is_active)
 
     def test_activation_invalid_token(self):
+        """400 Bad Request: Activation fails with invalid token."""
         url = reverse("activate", kwargs={
                       "uidb64": self.uidb64, "token": "not-a-real-token"})
         resp = self.client.get(url)
@@ -156,6 +174,7 @@ class ActivateAccountViewTests(APITestCase):
         self.assertFalse(self.user.is_active)
 
     def test_activation_invalid_uid(self):
+        """400 Bad Request: Activation fails with invalid uid."""
         bad_uid = "bogus"
         url = reverse("activate", kwargs={
                       "uidb64": bad_uid, "token": self.token})
@@ -169,6 +188,8 @@ class ActivateAccountViewTests(APITestCase):
 
 
 class PasswordResetRequestViewTests(APITestCase):
+    """Integration tests for the PasswordResetRequestView endpoint."""
+
     def setUp(self):
         self.url = reverse("password_reset")
         self.user_email = "anna@example.com"
@@ -181,7 +202,7 @@ class PasswordResetRequestViewTests(APITestCase):
         )
 
     def test_password_reset_existing_user(self):
-        """Is supposed to return 200 and to send email if user exists."""
+        """200 OK: Returns success and sends a reset email when the user exists."""
         response = self.client.post(
             self.url, {"email": self.user_email}, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -193,7 +214,7 @@ class PasswordResetRequestViewTests(APITestCase):
         self.assertIn(self.user_email, mail.outbox[0].to)
 
     def test_password_reset_nonexistent_user(self):
-        """Is supposed to return 200 anyway and send a neutral email if user doesn't exist."""
+        """200 OK: Returns success and sends a neutral email even if the user does not exist, as specified in the documentation."""
         non_existing_email = "doesnotexist@example.com"
         response = self.client.post(
             self.url, {"email": non_existing_email}, format="json")
@@ -207,6 +228,8 @@ class PasswordResetRequestViewTests(APITestCase):
 
 
 class PasswordResetConfirmViewTests(APITestCase):
+    """Integration tests for the PasswordResetConfirmView endpoint."""
+
     def setUp(self):
         self.user = User.objects.create_user(
             username="resetuser",
@@ -222,6 +245,7 @@ class PasswordResetConfirmViewTests(APITestCase):
         )
 
     def test_reset_password_success(self):
+        """200 OK: Successfully resets the password when valid uid, token, and matching passwords are provided."""
         data = {
             "new_password": "newsecurepassword123",
             "confirm_password": "newsecurepassword123"
@@ -233,21 +257,22 @@ class PasswordResetConfirmViewTests(APITestCase):
             "Your Password has been successfully reset."
         )
 
-        # Prüfen, ob das neue Passwort wirklich gesetzt wurde
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password("newsecurepassword123"))
 
     def test_passwords_do_not_match(self):
+        """400 Bad Request: Fails when the two provided passwords do not match."""
         data = {
             "new_password": "pw1",
             "confirm_password": "pw2"
         }
         response = self.client.post(self.url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        
-        
+
 
 class LogoutViewTest(APITestCase):
+    """Integration tests for the LogoutView endpoint."""
+
     def setUp(self):
         self.url = reverse('logout')
         self.user = User.objects.create_user(
@@ -260,17 +285,20 @@ class LogoutViewTest(APITestCase):
         self.invalid_refresh_token = "fake.token.value"
 
     def test_missing_refresh_token_cookie(self):
+        """400 Bad Request: Fails when refresh token cookie is missing."""
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["detail"], "Missing refresh token!")
 
     def test_invalid_refresh_token_cookie(self):
+        """400 Bad Request: Fails when refresh token cookie is invalid."""
         self.client.cookies["refresh_token"] = self.invalid_refresh_token
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["detail"], "Invalid token.")
 
     def test_valid_refresh_token_cookie(self):
+        """200 OK: Logout succeeds, tokens are deleted, and refresh token is invalidated."""
         self.client.cookies["refresh_token"] = self.valid_refresh_token
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 200)

@@ -217,7 +217,7 @@ def extract_video_metadata(video, input_path):
 
 def generate_thumbnail(video, input_path):
     """
-    Generate thumbnail from video at 5-second mark
+    Generate thumbnail from video at 3-second mark
     """
     try:
         thumbnail_dir = Path(settings.MEDIA_ROOT) / "thumbnails"

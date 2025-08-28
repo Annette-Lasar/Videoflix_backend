@@ -10,7 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 def build_activation_link(user) -> str:
-    """Erzeugt einen (möglichst) absoluten Link für die Aktivierung."""
+    """
+    Build an absolute activation link for a given user.
+
+    The link includes the uid and token as query parameters
+    and points to the frontend activation page.
+    """
     uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
 
@@ -21,6 +26,11 @@ def build_activation_link(user) -> str:
 
 
 def send_activation_email(user):
+    """
+    Send an activation email to the given user.
+
+    Includes both plain text and HTML versions with the activation link.
+    """
     link = build_activation_link(user)
     subject = "Bitte den Videoflix-Account aktivieren!"
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@example.com")
@@ -49,8 +59,10 @@ def send_activation_email(user):
 
 def build_password_reset_link(user):
     """
-    Relativer Link (Option A), host-unabhängig und Bootcamp-sicher.
-    Die Frontend-Seite liest uid/token aus der URL und ruft /api/password_confirm/<uid>/<token>/ auf.
+    Build a relative password reset link for a given user.
+
+    The link includes uid and token as query parameters and
+    points to the frontend password reset confirmation page.
     """
     uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
@@ -58,6 +70,11 @@ def build_password_reset_link(user):
 
 
 def send_password_reset_email(user):
+    """
+    Send a password reset email to the given user.
+
+    Includes both plain text and HTML versions with the reset link.
+    """
     link = build_password_reset_link(user)
     subject = "Passwort zurücksetzen"
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@example.com")
