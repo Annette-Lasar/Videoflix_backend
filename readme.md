@@ -59,7 +59,8 @@ cp .env.template .env
 ```
 
 
-Set (at least) the following variables:
+Set (at least) the following variables: <br>
+"change-me" indicates a placeholder. Replace it with the appropriate value for your project setup.
 
 
 | Key | Example | Notes | 
@@ -70,10 +71,12 @@ Set (at least) the following variables:
 | DJANGO_SUPERUSER_PASSWORD | change-me | default: adminpassword |
 | DEBUG |	True |	False for production |
 | ALLOWED_HOSTS | localhost,127.0.0.1 | |
-| CSRF_TRUSTED_ORIGINS | http://localhost:5500,http://127.0.0.1:5500 |
-| DB_NAME | change-me | |
-| DB_USER | change-me | |
-| DB_PASSWORD | change-me | |
+| CSRF_TRUSTED_ORIGINS | http://localhost:5500,http://127.0.0.1:5500 | separated by commas, without spaces |
+| FRONTEND_ORIGIN | http://127.0.0.1:5500 | Don't use localhost – it's incompatible with the frontend. |
+| BASE_BACKEND_URL | http://127.0.0.1:8000 | Don't use localhost – it's incompatible with the frontend. |
+| DB_NAME | change-me | Any string will work. |
+| DB_USER | change-me | Any string will work. |
+| DB_PASSWORD | change-me | Any string will work. **Make sure to choose a secure password.** |
 | DB_HOST | db | |
 | DB_PORT | 5432 | |
 | REDIS_HOST | redis | |
