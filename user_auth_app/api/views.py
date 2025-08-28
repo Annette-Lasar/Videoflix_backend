@@ -112,8 +112,6 @@ class LoginView(TokenObtainPairView):
             }
         }
 
-        print("Login erfolgreich:", request.user)
-
         return response
 
 
@@ -270,15 +268,23 @@ class LogoutView(APIView):
     def post(self, request):
         refresh_token = request.COOKIES.get('refresh_token')
 
-        if refresh_token:
-            try:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
-            except TokenError:
-                pass
+        if not refresh_token:
+            return Response(
+                {"detail": "Refresh token is missing."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except TokenError:
+            return Response(
+                {"detail": "Invalid token."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         response = Response(
-            {"detail": "Logout successful!"},
+            {"detail": "Logout successful! All tokens will be deleted. Refresh token is now invalid."},
             status=status.HTTP_200_OK
         )
 

@@ -5,6 +5,10 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 from django.urls import reverse
+from django.test import TestCase
+from unittest.mock import patch
+from user_auth_app.signals import password_reset_requested
+from user_auth_app.tasks import enqueue_password_reset_email
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -188,8 +192,6 @@ class ActivateAccountViewTests(APITestCase):
 
 
 class PasswordResetRequestViewTests(APITestCase):
-    """Integration tests for the PasswordResetRequestView endpoint."""
-
     def setUp(self):
         self.url = reverse("password_reset")
         self.user_email = "anna@example.com"
@@ -202,29 +204,33 @@ class PasswordResetRequestViewTests(APITestCase):
         )
 
     def test_password_reset_existing_user(self):
-        """200 OK: Returns success and sends a reset email when the user exists."""
-        response = self.client.post(
-            self.url, {"email": self.user_email}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data.get("detail"),
-                         "An email has been sent to reset your password.")
+        with patch("user_auth_app.signals.enqueue_password_reset_email") as mock_enqueue, \
+                patch("django.db.transaction.on_commit", side_effect=lambda fn: fn()):
+            response = self.client.post(
+                self.url, {"email": self.user_email}, format="json"
+            )
 
-        from django.core import mail
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn(self.user_email, mail.outbox[0].to)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.data.get("detail"),
+                "An email has been sent to reset your password."
+            )
+            mock_enqueue.assert_called_once_with(self.user.id)
 
     def test_password_reset_nonexistent_user(self):
-        """200 OK: Returns success and sends a neutral email even if the user does not exist, as specified in the documentation."""
         non_existing_email = "doesnotexist@example.com"
-        response = self.client.post(
-            self.url, {"email": non_existing_email}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data.get("detail"),
-                         "An email has been sent to reset your password.")
+        with patch("user_auth_app.signals.enqueue_plain_email") as mock_enqueue_plain, \
+                patch("django.db.transaction.on_commit", side_effect=lambda fn: fn()):
+            response = self.client.post(
+                self.url, {"email": non_existing_email}, format="json"
+            )
 
-        from django.core import mail
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn(non_existing_email, mail.outbox[0].to)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data.get("detail"),
+                             "An email has been sent to reset your password.")
+            mock_enqueue_plain.assert_called_once()
+            args, kwargs = mock_enqueue_plain.call_args
+            self.assertIn(non_existing_email, args)
 
 
 class PasswordResetConfirmViewTests(APITestCase):
@@ -288,7 +294,7 @@ class LogoutViewTest(APITestCase):
         """400 Bad Request: Fails when refresh token cookie is missing."""
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["detail"], "Missing refresh token!")
+        self.assertEqual(response.data["detail"], "Refresh token is missing.")
 
     def test_invalid_refresh_token_cookie(self):
         """400 Bad Request: Fails when refresh token cookie is invalid."""

@@ -59,14 +59,13 @@ def send_activation_email(user):
 
 def build_password_reset_link(user):
     """
-    Build a relative password reset link for a given user.
-
-    The link includes uid and token as query parameters and
-    points to the frontend password reset confirmation page.
+    Build an absolute password reset link for a given user.
     """
     uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
-    return f"/pages/auth/password_confirm.html?uid={uidb64}&token={token}"
+    base = getattr(settings, "FRONTEND_ORIGIN", "http://127.0.0.1:5500")
+    path = f"/pages/auth/confirm_password.html?uid={uidb64}&token={token}"
+    return urljoin(base, path)
 
 
 def send_password_reset_email(user):
