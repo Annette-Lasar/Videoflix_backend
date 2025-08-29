@@ -8,7 +8,10 @@ from user_auth_app.tasks import (
     enqueue_activation_email,
     enqueue_password_reset_email,
     enqueue_plain_email,
+    enqueue_password_changed_email
 )
+
+from utils.email_helpers import send_password_changed_email
 
 
 User = get_user_model()
@@ -40,13 +43,20 @@ def handle_password_reset_requested(sender, email, user, **kwargs):
             lambda: enqueue_plain_email(email, subject, message))
 
 
+# @receiver(password_reset_confirmed)
+# def handle_password_reset_confirmed(sender, user, **kwargs):
+#     """After a successful password reset/confirmation, notify the user with a plain confirmation email."""
+#     subject = "Password changed"
+#     message = (
+#         "Hello,\n\nYour password has been changed successfully.\n"
+#         "If you didn't perform this action, please contact support immediately."
+#     )
+#     transaction.on_commit(lambda: enqueue_plain_email(
+#         user.email, subject, message))
+
+
 @receiver(password_reset_confirmed)
 def handle_password_reset_confirmed(sender, user, **kwargs):
-    """After a successful password reset/confirmation, notify the user with a plain confirmation email."""
-    subject = "Password changed"
-    message = (
-        "Hello,\n\nYour password has been changed successfully.\n"
-        "If you didn't perform this action, please contact support immediately."
-    )
-    transaction.on_commit(lambda: enqueue_plain_email(
-        user.email, subject, message))
+    """After a successful password reset/confirmation, notify the user with a confirmation email."""
+    transaction.on_commit(lambda: enqueue_password_changed_email(user.id))
+

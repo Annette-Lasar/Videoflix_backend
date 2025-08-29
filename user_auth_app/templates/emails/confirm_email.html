@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+      font-family: Verdana, sans-serif;
+    "
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellspacing="0"
+      cellpadding="0"
+      style="background: #f9f9f9"
+    >
+      <tr>
+        <td align="center" style="padding: 40px 20px">
+          <table
+            role="presentation"
+            width="600"
+            cellspacing="0"
+            cellpadding="0"
+            style="
+              background: #ffffff;
+              border-radius: 8px;
+              box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+            "
+          >
+            <!-- Logo -->
+            <tr>
+              <td align="center" style="padding: 30px">
+                <img
+                  src="http://127.0.0.1:8000/static/images/videoflix_logo.png"
+                  alt="Videoflix Logo"
+                  width="180"
+                  style="display: block"
+                />
+              </td>
+            </tr>
+
+            <!-- Greeting + Text -->
+            <tr>
+              <td
+                style="
+                  padding: 0 40px 20px;
+                  color: #333;
+                  font-size: 15px;
+                  line-height: 1.6;
+                "
+              >
+                <p>
+                  Dear <span style="color: #2e3edf">{{ user.username }}</span>,
+                </p>
+                <p>
+                  Thank you for registering with
+                  <strong style="color: #2e3edf">Videoflix</strong>. To complete
+                  your registration and verify your email address, please click
+                  the link below:
+                </p>
+              </td>
+            </tr>
+
+            <!-- CTA Button -->
+            <tr>
+              <td align="left" style="padding: 20px 40px">
+                <a
+                  href="{{ activation_url }}"
+                  style="
+                    display: inline-block;
+                    background: #2e3edf;
+                    color: #fff;
+                    text-decoration: none;
+                    padding: 14px 28px;
+                    border-radius: 20px;
+                    font-weight: bold;
+                    font-size: 15px;
+                  "
+                >
+                  Activate account
+                </a>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="
+                  padding: 0 40px 30px;
+                  color: #555;
+                  font-size: 13px;
+                  line-height: 1.6;
+                "
+              >
+                <p>
+                  If you did not create an account with us, please disregard
+                  this email.
+                </p>
+                <p>Best regards,<br />Your Videoflix Team.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

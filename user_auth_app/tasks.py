@@ -1,14 +1,19 @@
+from utils.email_helpers import (
+    send_activation_email,
+    send_password_reset_email,
+)
 import logging
 import django_rq
 from rq import Retry
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
+from utils.email_helpers import send_password_changed_email
 
-from utils.email_helpers import (
-    send_activation_email,
-    send_password_reset_email,
-)
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +23,6 @@ def send_activation_email_job(user_id: int) -> None:
     RQ job: Send an activation email for the given user.
     Runs inside a worker process.
     """
-    User = get_user_model()
     user = User.objects.get(pk=user_id)
 
     if not user.email:
@@ -52,7 +56,6 @@ def send_password_reset_email_job(user_id: int) -> None:
     RQ job: Send a password reset email for the given user.
     Runs inside a worker process.
     """
-    User = get_user_model()
     user = User.objects.get(pk=user_id)
 
     if not user.email:
@@ -105,5 +108,37 @@ def enqueue_plain_email(to_email: str, subject: str, message: str) -> str:
         retry=Retry(max=3, interval=[10, 60, 300]),
         failure_ttl=7 * 24 * 3600,
         description=f"Plain email to {to_email}",
+    )
+    return job.id
+
+
+def send_password_changed_email_job(user_id: int):
+    """
+    RQ job: Send a password changed confirmation email for the given user.
+    Runs inside a worker process.
+    """
+    user = User.objects.get(pk=user_id)
+
+    if not user.email:
+        logger.warning(
+            "Password changed email skipped: user %s has no email", user_id)
+        return
+
+    send_password_changed_email(user)
+
+
+def enqueue_password_changed_email(user_id: int) -> str:
+    """
+    Enqueue the password changed email job into the default queue.
+    Returns the job ID.
+    """
+    q = django_rq.get_queue("default")
+    job = q.enqueue(
+        send_password_changed_email_job,
+        user_id,
+        job_timeout=15,
+        retry=Retry(max=3, interval=[10, 60, 300]),
+        failure_ttl=7 * 24 * 3600,
+        description=f"Password changed email for user {user_id}",
     )
     return job.id
