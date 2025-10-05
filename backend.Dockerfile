@@ -1,3 +1,4 @@
+#!/bin/bash
 FROM python:3.12-alpine
 
 LABEL maintainer="mihai@developerakademie.com"
@@ -19,4 +20,4 @@ RUN apk update && \
 
 EXPOSE 8000
 
-ENTRYPOINT [ "./backend.entrypoint.sh" ]
+ENTRYPOINT [ "/app/backend.entrypoint.sh" ]
