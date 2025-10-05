@@ -19,4 +19,4 @@ RUN apk update && \
 
 EXPOSE 8000
 
-ENTRYPOINT [ "./backend.entrypoint.sh" ]
+ENTRYPOINT [ "/app/backend.entrypoint.sh" ]

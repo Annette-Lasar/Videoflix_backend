@@ -35,5 +35,11 @@ else:
 EOF
 
 python manage.py rqworker default &
-exec gunicorn core.wsgi:application --bind 0.0.0.0:8000 --reload 
+if [ "$DEBUG" = "True" ]; then
+  echo "DEBUG mode detected — starting Gunicorn with --reload"
+  exec gunicorn core.wsgi:application --bind 0.0.0.0:8000 --reload
+else
+  echo "Production mode — starting Gunicorn without --reload"
+  exec gunicorn core.wsgi:application --bind 0.0.0.0:8000
+fi
 
