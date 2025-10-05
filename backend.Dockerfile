@@ -1,4 +1,3 @@
-#!/bin/bash
 FROM python:3.12-alpine
 
 LABEL maintainer="mihai@developerakademie.com"
