@@ -72,6 +72,7 @@ Set (at least) the following variables: <br>
 | CSRF_TRUSTED_ORIGINS      | http://localhost:5500,http://127.0.0.1:5500 | separated by commas, without spaces                                                                                                                    |
 | FRONTEND_ORIGIN           | http://127.0.0.1:5500                       | Don't use localhost – it's incompatible with the frontend.                                                                                             |
 | BASE_BACKEND_URL          | http://127.0.0.1:8000                       | Don't use localhost – it's incompatible with the frontend.                                                                                             |
+| DOCKER_VOLUME | .:/app | Use this value in development. Leave it empty in production. |
 | DB_NAME                   | change-me                                   | Any string will work.                                                                                                                                  |
 | DB_USER                   | change-me                                   | Any string will work.                                                                                                                                  |
 | DB_PASSWORD               | change-me                                   | Any string will work. **Make sure to choose a secure password.**                                                                                       |
