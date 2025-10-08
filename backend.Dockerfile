@@ -1,20 +1,24 @@
-FROM python:3.12-alpine
+FROM python:3.12-slim
 
 LABEL maintainer="mihai@developerakademie.com"
 LABEL version="1.0"
-LABEL description="Python 3.14.0a7 Alpine 3.21"
+LABEL description="Python 3.12 Slim Debian-based image for Videoflix backend"
 
 WORKDIR /app
 
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
 COPY . .
 
-RUN apk update && \
-    apk add --no-cache --upgrade bash && \
-    apk add --no-cache postgresql-client ffmpeg && \
-    apk add --no-cache --virtual .build-deps gcc musl-dev postgresql-dev && \
-    pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    apk del .build-deps && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        bash \
+        ffmpeg \
+        libpq-dev \
+        gcc && \
+    rm -rf /var/lib/apt/lists/* && \
     chmod +x backend.entrypoint.sh
 
 EXPOSE 8000
