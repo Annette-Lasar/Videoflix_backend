@@ -41,7 +41,7 @@ services:
     container_name: videoflix_backend
     restart: always
     volumes:
-      - .:/app
+      - ${DOCKER_VOLUME}
       - videoflix_media:/app/media
       - videoflix_static:/app/static
     ports:
