@@ -24,4 +24,4 @@ RUN apt-get update && \
 
 EXPOSE 8000
 
-ENTRYPOINT [ "/app/backend.entrypoint.sh" ]
+ENTRYPOINT [ "sh", "/app/backend.entrypoint.sh" ]
