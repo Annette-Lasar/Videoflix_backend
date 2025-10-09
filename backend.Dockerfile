@@ -17,10 +17,11 @@ RUN apt-get update && \
         bash \
         ffmpeg \
         libpq-dev \
-        gcc && \
+        gcc \
+        postgresql-client && \
     rm -rf /var/lib/apt/lists/* && \
     chmod +x backend.entrypoint.sh
 
 EXPOSE 8000
 
-ENTRYPOINT [ "sh", "/app/backend.entrypoint.sh" ]
+ENTRYPOINT [ "/app/backend.entrypoint.sh" ]
