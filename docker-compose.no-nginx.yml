@@ -1,0 +1,8 @@
+services:
+  web:
+    entrypoint: ["/app/backend.entrypoint.dev.sh"]
+    volumes:
+      - /srv/videoflix/media:/app/media
+      - /srv/videoflix/static:/app/static
+    ports:
+      - "8000:8000"

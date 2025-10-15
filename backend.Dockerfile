@@ -20,8 +20,6 @@ RUN apt-get update && \
         gcc \
         postgresql-client && \
     rm -rf /var/lib/apt/lists/* && \
-    chmod +x backend.entrypoint.sh
+    chmod +x backend.entrypoint.dev.sh backend.entrypoint.prod.sh
 
 EXPOSE 8000
-
-ENTRYPOINT [ "sh", "/app/backend.entrypoint.sh" ]
