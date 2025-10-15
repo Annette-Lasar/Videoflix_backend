@@ -219,6 +219,9 @@ def generate_thumbnail(video, input_path):
     """
     Generate thumbnail from video at 3-second mark
     """
+    logger.warning(
+        ">>> [Thumbnail START] Trying to generate thumbnail for video %s", video.id)
+
     try:
         thumbnail_dir = Path(settings.MEDIA_ROOT) / "thumbnails"
         thumbnail_dir.mkdir(parents=True, exist_ok=True)
@@ -235,18 +238,30 @@ def generate_thumbnail(video, input_path):
             '-q:v', '2',
             str(thumbnail_path),
         ]
+
+        logger.debug("Starting ffmpeg thumbnail for video %s", video.id)
         subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True)
+        logger.debug("Finished ffmpeg thumbnail for video %s", video.id)
 
         video.thumbnail_url = f"thumbnails/{thumbnail_filename}"
 
         video.save()
         logger.info("Thumbnail generated for video %s: %s",
                     video.id, thumbnail_filename)
+        logger.warning(
+            ">>> [Thumbnail END] Successfully generated Thumbnail for video %s", video.id)
 
     except subprocess.CalledProcessError as e:
         logger.error(
+            "FFmpeg thumbnail generation failed for video %s", video.id)
+        logger.error("stderr output:\n%s", e.stderr)
+        logger.error(
             "FFmpeg thumbnail generation failed for video %s: %s", video.id, e.stderr)
+        raise
 
     except Exception as e:
         logger.error(
+            "General thumbnail generation error for video %s: %s§", video.id)
+        logger.error(
             "Failed to generate thumbnail for video %s: %s", video.id, str(e))
+        raise
